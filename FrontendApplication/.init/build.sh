@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE="/home/kavia/workspace/code-generation/recipe-book-310206-310325/FrontendApplication"
+LOG="$WORKSPACE/.setup_logs/build-006.log"
+mkdir -p "$WORKSPACE/.setup_logs"
+: >"$LOG"
+cd "$WORKSPACE"
+
+# Default to npm; allow persisted choice
+PKG_MANAGER="npm"
+if [ -f "$WORKSPACE/.pkg_manager" ]; then
+  # .pkg_manager is expected to contain something like: PKG_MANAGER="yarn"
+  source "$WORKSPACE/.pkg_manager" || true
+fi
+
+export NODE_ENV=production
+
+if [ "$PKG_MANAGER" = "yarn" ]; then
+  # yarn build
+  yarn build >>"$LOG" 2>&1 || { echo "yarn build failed (see $LOG)" >&2; exit 15; }
+else
+  # npm run build; use --silent to keep logs terse
+  npm run build --silent >>"$LOG" 2>&1 || { echo "npm run build failed (see $LOG)" >&2; exit 16; }
+fi
+
+# verify output
+if [ ! -f "$WORKSPACE/build/index.html" ]; then
+  echo "$(date -Is) build output missing" >>"$LOG"
+  exit 17
+fi
+
+echo "$(date -Is) build succeeded" >>"$LOG"
+exit 0
